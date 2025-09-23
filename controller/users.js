@@ -1,8 +1,6 @@
-import { Request, Response } from "express";
 import validator from "validator";
 import bcrypt from "bcrypt";
-import User from "../model/userModel";
-import generateToken from "../utils/generateToken";
+import User from "../model/user.js";
 
 export const registerUser = async (req, res) => {
   const { username, email, password } = req.body;
@@ -64,7 +62,7 @@ export const registerUser = async (req, res) => {
         username: user.username,
         email: user.email,
       },
-      token: generateToken(user._id),
+      // token: generateToken(user._id),
       message: "User created successfully",
     });
   } catch (error) {
@@ -98,7 +96,7 @@ export const loginUser = async (req, res) => {
           username: user.username,
           email: user.email,
         },
-        token: generateToken(user._id),
+        // token: generateToken(user._id),
         message: "Logged in successfully",
       });
     }
