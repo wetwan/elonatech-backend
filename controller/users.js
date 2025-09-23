@@ -2,12 +2,22 @@ import validator from "validator";
 import bcrypt from "bcrypt";
 import User from "../model/user.js";
 
+import jwt from "jsonwebtoken";
+
+const generateToken = (id) => {
+  if (!process.env.JWT_SECRET ) {
+    throw new Error("JWT_SECRET  is not defined in .env file");
+  }
+
+  return jwt.sign({ id }, process.env.JWT_SECRET , {
+    expiresIn: "30d",
+  });
+};
+
 export const registerUser = async (req, res) => {
   const { username, email, password } = req.body;
 
   try {
-    // If you're attaching user to req (e.g. from middleware), extend Request type
-    const userId = req.user?._id;
 
     const missingFields = [];
     if (!username) missingFields.push("username");
@@ -29,50 +39,48 @@ export const registerUser = async (req, res) => {
         .json({ success: false, message: "Please enter a valid email" });
     }
 
-    // Validate password
+    // Validate password strength
     if (password.length < 6) {
       return res.status(400).json({
         success: false,
-        message: "Please enter a strong password (min 6 characters)",
+        message: "Password must be at least 6 characters",
       });
+    }
+
+    // Check if user already exists
+    const existingUser = await User.findOne({ email });
+    if (existingUser) {
+      return res
+        .status(400)
+        .json({ success: false, message: "User already exists" });
     }
 
     // Hash password
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
 
-    // Create user object
-    const UserData = {
+    // Create user
+    const user = new User({
       username,
       email,
       password: hashedPassword,
-      userId,
-      _id: userId,
-      createdAt: Date.now(),
-    };
+    });
 
-    // Save to database
-    const user = new User(UserData);
     await user.save();
 
-    res.json({
+    res.status(201).json({
       success: true,
       user: {
         _id: user._id,
         username: user.username,
         email: user.email,
       },
-      // token: generateToken(user._id),
+      token: generateToken(user._id), // ✅ issue token after registration
       message: "User created successfully",
     });
   } catch (error) {
-    if (error instanceof Error) {
-      console.error("Error registering user:", error.message);
-      res.json({ success: false, message: error.message });
-    } else {
-      console.error("Unexpected error:", error);
-      res.json({ success: false, message: "An unknown error occurred" });
-    }
+    console.error("❌ Error registering user:", error.message);
+    res.status(500).json({ success: false, message: error.message });
   }
 };
 
@@ -100,18 +108,18 @@ export const loginUser = async (req, res) => {
         .json({ success: false, message: "Invalid email or password" });
     }
 
-    return res.json({
+    res.json({
       success: true,
       user: {
         _id: user._id,
         username: user.username,
         email: user.email,
       },
-      // token: generateToken(user._id),
+      token: generateToken(user._id),
       message: "Logged in successfully",
     });
   } catch (error) {
-    console.error("❌ Error logging in user:", error);
+    console.error("❌ Error logging in user:", error.message);
     res.status(500).json({ success: false, message: "Server error" });
   }
 };

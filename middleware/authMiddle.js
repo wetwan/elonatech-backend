@@ -7,7 +7,7 @@ export const protectUser = async (req, res, next) => {
     return res.json({ success: false, message: "Not authorized, Login again" });
   }
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SERECT);
+    const decoded = jwt.verify(token, process.env.JWT_SECRET );
     req.user = await User.findById(decoded.id).select("-password");
     next();
   } catch (error) {

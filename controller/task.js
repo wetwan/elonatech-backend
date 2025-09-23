@@ -1,15 +1,11 @@
 import Task from "../model/taskmodel.js";
 
 export const addTask = async (req, res) => {
-  const { name, taskId, description } = req.body;
+  const { name, description } = req.body || {};
 
   try {
-    // If you're attaching user to req (e.g. from middleware), extend Request type
-    const taskId = req.user?._id;
-
     const missingFields = [];
     if (!name) missingFields.push("name");
-    if (!description) missingFields.push("description");
 
     if (missingFields.length > 0) {
       return res.status(400).json({
@@ -21,13 +17,12 @@ export const addTask = async (req, res) => {
 
     const taskData = {
       name,
-      taskId,
       description,
       status: "pending",
       createdAt: Date.now(),
+      user: req.user._id,
     };
 
-    // Save to database
     const task = new Task(taskData);
     await task.save();
 
@@ -39,10 +34,8 @@ export const addTask = async (req, res) => {
         description: task.description,
         status: task.status,
         createdAt: task.createdAt,
-        userId: task.userId,
-        taskId,
+        userId: task.user,
       },
-      // token: generateToken(user._id),
       message: "Task created successfully",
     });
   } catch (error) {
@@ -58,7 +51,7 @@ export const addTask = async (req, res) => {
 export const editTask = async (req, res) => {
   const { id } = req.params; // <-- get from URL
   const { name, description, status } = req.body;
-
+  const userId = req.user._id;
   try {
     const existingTask = await Task.findById(id);
     if (!existingTask) {
@@ -73,10 +66,16 @@ export const editTask = async (req, res) => {
 
     const updatedTask = await existingTask.save();
 
+    if (!updatedTask.user.equals(userId)) {
+      res.status(401).json({
+        success: false,
+        message: "Not authorized to access this task",
+      });
+    }
+
     res.json({
       success: true,
       task: updatedTask,
-
       message: "Task updated successfully",
     });
   } catch (error) {
@@ -87,13 +86,24 @@ export const editTask = async (req, res) => {
 
 export const deleteTask = async (req, res) => {
   const { id } = req.params; // get task id from URL
-
+  const userId = req.user._id;
   try {
     const deletedTask = await Task.findByIdAndDelete(id);
 
     if (!deletedTask) {
-      return res.status(404).json({ success: false, message: "Task not found" });
+      return res
+        .status(404)
+        .json({ success: false, message: "Task not found" });
     }
+        if (!deletedTask.user.equals(userId)) {
+      res
+        .status(401)
+        .json({
+          success: false,
+          message: "Not authorized to access this task",
+        });
+    }
+
 
     res.json({
       success: true,
@@ -108,11 +118,10 @@ export const deleteTask = async (req, res) => {
 
 export const getAllTasks = async (req, res) => {
   try {
-    const tasks = await Task.find(); // fetch all tasks
+    const userId = req.user._id;
+    const tasks = await Task.find({ user: userId }); // fetch all tasks
 
     res.json({
-      success: true,
-      count: tasks.length,
       tasks,
     });
   } catch (error) {
@@ -123,11 +132,20 @@ export const getAllTasks = async (req, res) => {
 
 export const getSingleTask = async (req, res) => {
   try {
+    const userId = req.user._id;
     const { id } = req.params; // task ID from URL
-    const task = await Task.findById(id);
 
+    const task = await Task.findById(id);
     if (!task) {
-      return res.status(404).json({ success: false, message: "Task not found" });
+      return res
+        .status(404)
+        .json({ success: false, message: "Task not found" });
+    }
+    if (!task.user.equals(userId)) {
+      res.status(401).json({
+        success: false,
+        message: "Not authorized to access this task",
+      });
     }
 
     res.json({
@@ -139,4 +157,3 @@ export const getSingleTask = async (req, res) => {
     res.status(500).json({ success: false, message: error.message });
   }
 };
-
