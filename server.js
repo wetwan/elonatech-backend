@@ -4,6 +4,7 @@ import cors from "cors";
 import * as Sentry from "@sentry/node";
 const app = express();
 import dotenv from "dotenv";
+
 import userRoute from "./router/userRoute.js";
 import taskRoute from "./router/taskRoute.js";
 
@@ -18,6 +19,9 @@ app.get("/", (req, res) => res.send("API Working"));
 // app.use(express.raw({ type: "application/json" }));
 app.use("/api/user", userRoute);
 app.use("/api/task", taskRoute);
+
+app.use(express.raw({ type: "application/json" }));
+
 const PORT = 5000;
 Sentry.setupExpressErrorHandler(app);
 

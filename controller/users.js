@@ -1,3 +1,5 @@
+import { Request, Response } from "express";
+
 import validator from "validator";
 import bcrypt from "bcrypt";
 import User from "../model/user.js";
