@@ -1,5 +1,3 @@
-/* eslint-disable @typescript-eslint/no-empty-object-type */
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { Request, Response } from "express";
 import validator from "validator";
 import bcrypt from "bcrypt";
