@@ -33,7 +33,7 @@ export const addTask = async (req, res) => {
 
     res.json({
       success: true,
-      user: {
+      task: {
         _id: task._id,
         name: task.name,
         description: task.description,

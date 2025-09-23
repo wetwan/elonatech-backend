@@ -1,4 +1,3 @@
-
 import validator from "validator";
 import bcrypt from "bcrypt";
 import User from "../model/user.js";
@@ -81,6 +80,12 @@ export const loginUser = async (req, res) => {
   const { email, password } = req.body;
 
   try {
+    if (!email || !password) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Email and password are required" });
+    }
+
     const user = await User.findOne({ email });
     if (!user) {
       return res
@@ -89,29 +94,24 @@ export const loginUser = async (req, res) => {
     }
 
     const isMatch = await bcrypt.compare(password, user.password);
-    if (isMatch) {
-      return res.json({
-        success: true,
-        user: {
-          _id: user._id,
-          username: user.username,
-          email: user.email,
-        },
-        // token: generateToken(user._id),
-        message: "Logged in successfully",
-      });
+    if (!isMatch) {
+      return res
+        .status(401)
+        .json({ success: false, message: "Invalid email or password" });
     }
 
-    return res
-      .status(401)
-      .json({ success: false, message: "Invalid email or password" });
+    return res.json({
+      success: true,
+      user: {
+        _id: user._id,
+        username: user.username,
+        email: user.email,
+      },
+      // token: generateToken(user._id),
+      message: "Logged in successfully",
+    });
   } catch (error) {
-    if (error instanceof Error) {
-      console.error("Error logging in user:", error.message);
-      res.json({ success: false, message: error.message });
-    } else {
-      console.error("Unexpected error:", error);
-      res.json({ success: false, message: "An unknown error occurred" });
-    }
+    console.error("❌ Error logging in user:", error);
+    res.status(500).json({ success: false, message: "Server error" });
   }
 };
