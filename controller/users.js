@@ -5,11 +5,11 @@ import User from "../model/user.js";
 import jwt from "jsonwebtoken";
 
 const generateToken = (id) => {
-  if (!process.env.JWT_SECRET ) {
+  if (!process.env.JWT_SECRET) {
     throw new Error("JWT_SECRET  is not defined in .env file");
   }
 
-  return jwt.sign({ id }, process.env.JWT_SECRET , {
+  return jwt.sign({ id }, process.env.JWT_SECRET, {
     expiresIn: "30d",
   });
 };
@@ -18,7 +18,6 @@ export const registerUser = async (req, res) => {
   const { username, email, password } = req.body;
 
   try {
-
     const missingFields = [];
     if (!username) missingFields.push("username");
     if (!email) missingFields.push("email");
@@ -120,6 +119,26 @@ export const loginUser = async (req, res) => {
     });
   } catch (error) {
     console.error("❌ Error logging in user:", error.message);
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+};
+export const logoutUser = async (req, res) => {
+  try {
+    const token = req.headers.token;
+
+    if (!token) {
+      return res
+        .status(401)
+        .json({ success: false, message: "No token provided" });
+    }
+
+    // Respond to client to remove token locally
+    return res.json({
+      success: true,
+      message: "Logged out successfully",
+    });
+  } catch (error) {
+    console.error("❌ Error logging out user:", error.message);
     res.status(500).json({ success: false, message: "Server error" });
   }
 };
